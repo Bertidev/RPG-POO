@@ -1,30 +1,36 @@
+import java.util.Scanner;
+
 public class Inimigo extends Personagem {
 
-    //CONSTRUTOR
     public Inimigo(String nome, int pontosVida, int ataque, int defesa, int nivel) {
-        //chama o construtor da superclasse (personagem) para configurar os atributos
         super(nome, pontosVida, ataque, defesa, nivel);
-
         prepararLoot();
     }
 
-    //loot table dos inimigos
     private void prepararLoot() {
-        //50% de chance de dropar uma pocao de cura
-        if (Math.random() > 0.5) {
-            Item loot = new Item("Poção de Cura", "Restaura 20 HP", "cura", 1);
-            this.inventario.adicionar(loot);
+        if (Math.random() < 0.5) {
+            Item loot = new Item("Poção de Cura", "Restaura 30 HP", "cura", 1);
+            // CORREÇÃO AQUI: Adicionar ', true' para ser silencioso
+            this.inventario.adicionar(loot, true); 
         }
         
-        //drop obrigatorio
-        Item lootObrigatorio = new Item("Essência Demoníaca", "Um item para missões", "missao", 1);
-        this.inventario.adicionar(lootObrigatorio);
+        // CORREÇÃO AQUI: Adicionar ', true' também
+        Item lootObrigatorio = new Item("Essência Demoníaca", "Aumenta ATK (2 rodadas)", "buff_atk", 1);
+        this.inventario.adicionar(lootObrigatorio, true);
     }
 
     @Override
-    public void batalhar(Inimigo inimigo) {
-        // Em teoria, inimigos não lutam contra inimigos neste jogo.
-        // Deixamos apenas uma mensagem ou vazio para cumprir o contrato do Java.
-        System.out.println("O inimigo ruge furiosamente, mas não sabe iniciar batalhas!");
+    public boolean usarHabilidadeEspecial(Inimigo inimigo) {
+        return false; // Inimigos não usam mana neste sistema simples
+    }
+
+    @Override
+    public String getDescricaoHabilidade() {
+        return "Ataque Especial"; // Inimigo não tem menu, mas precisa ter o método
+    }
+
+    @Override
+    public void batalhar(Inimigo inimigo, Scanner scanner) {
+        System.out.println("O inimigo ruge, mas não inicia batalhas.");
     }
 }

@@ -13,21 +13,23 @@ public class Inventario implements Cloneable {
     }
 
     //METODOS OBRIGATORIOS
-    //adiciona um item ao inventario, se ja existe um dele, aumenta a quantidade 
-    public void adicionar(Item itemParaAdicionar) {
+    public void adicionar(Item itemParaAdicionar, boolean silencioso) {
         String nomeDoItem = itemParaAdicionar.getNome();
 
-        //verificando se o item ja existe no mapa
         if (this.itens.containsKey(nomeDoItem)) {
-            //se sim aumenta a quantidade
             Item itemExistente = this.itens.get(nomeDoItem);
-
             itemExistente.adicionarQuantidade(itemParaAdicionar.getQuantidade());
-            System.out.println(" > (Inventário) " + itemParaAdicionar.getQuantidade() + "x '" + nomeDoItem + "' adicionado(s). Total agora: " + itemExistente.getQuantidade());
+            
+            if (!silencioso) { 
+                System.out.println(" > (Inventário) " + itemParaAdicionar.getQuantidade() + "x '" + nomeDoItem + "' adicionado(s).");
+            }
+
         } else {
-            //se nao adiciona ao inventario
             this.itens.put(nomeDoItem, itemParaAdicionar);
-            System.out.println(" > (Inventário) Novo item adicionado: " + itemParaAdicionar.getNome());
+            
+            if (!silencioso) {
+                System.out.println(" > (Inventário) Novo item adicionado: " + itemParaAdicionar.getNome());
+            }
         }
     }
 
@@ -77,23 +79,26 @@ public class Inventario implements Cloneable {
                 itemOriginal.getQuantidade()
             );
             //adiciona a copia ao novo inventario
-            inventarioCopiado.adicionar(itemCopiado);
+            inventarioCopiado.adicionar(itemCopiado, true);        
         }
         return inventarioCopiado;
     }
 
     public void adicionarItensDoInimigo(Inventario inventarioInimigo) {
-        // Itera sobre os itens do inimigo (usando values() do TreeMap)
         for (Item itemDoInimigo : inventarioInimigo.itens.values()) {
-            // Usa o método adicionar() que já criamos, pois ele
-            // já sabe lidar com quantidades somadas!
-            this.adicionar(itemDoInimigo);
+            // AQUI: Passamos 'false' porque queremos ver o que ganhamos no saque!
+            this.adicionar(itemDoInimigo, false);
         }
     }
     
     // Precisamos também de um método para verificar se tem poção
     public boolean temItem(String nome) {
         return this.itens.containsKey(nome);
+    }
+
+    public java.util.ArrayList<Item> getListaItens() {
+        // Converte os valores do mapa (os itens) para uma lista numérica (ArrayList)
+        return new java.util.ArrayList<>(this.itens.values());
     }
 
     //GETTERS

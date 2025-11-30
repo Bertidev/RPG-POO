@@ -1,5 +1,4 @@
 import java.util.Scanner;
-import java.util.Random;
 
 /**
  * Classe principal que gerencia o fluxo do jogo (Game Loop).
@@ -9,7 +8,6 @@ public class Jogo {
 
     // Variáveis globais do sistema
     private static Scanner scanner = new Scanner(System.in);
-    private static Random random = new Random();
     private static Personagem jogador; // O herói controlado pelo usuário
 
     public static void main(String[] args) {
@@ -26,9 +24,9 @@ public class Jogo {
         String nome = scanner.nextLine();
 
         System.out.println("\nEscolha sua classe:");
-        System.out.println("1. Templário (Guerreiro) - HP Alto, Defesa Alta");
-        System.out.println("2. Exorcista (Mago) - Ataque Mágico Altíssimo, Frágil");
-        System.out.println("3. Inquisidor (Arqueiro) - Equilibrado, Ataque à Distância");
+        System.out.println("1. Templário (Guerreiro) - HP Alto, Defesa Alta, Ataque Baixo");
+        System.out.println("2. Exorcista (Mago) - HP Baixo, Defesa Baixa, Ataque Mágico Altíssimo");
+        System.out.println("3. Inquisidor (Arqueiro) - HP Medio, Defesa Baixa, Ataque Medio");
         
         int escolha = lerOpcao(3);
 
@@ -63,7 +61,7 @@ public class Jogo {
         
         // O líder dá um item ao jogador
         Item pocao = new Item("Poção de Cura", "Cura 30 HP", "cura", 2);
-        jogador.getInventario().adicionar(pocao);
+        jogador.getInventario().adicionar(pocao, false);
         
         esperarEnter();
 
@@ -99,15 +97,19 @@ public class Jogo {
         System.out.println("Você encontra um pequeno Diabrete mexendo em um baú!");
         
         Inimigo diabrete = new Inimigo("Diabrete", 40, 8, 5, 1);
-        // Adiciona um item extra ao inimigo
-        diabrete.getInventario().adicionar(new Item("Mana Potion", "Recupera MP", "mana", 1));
-        
-        // Inicia o combate (método definido nas subclasses do jogador)
+    
+        // AQUI ESTÁ A MUDANÇA: note o ', true' no final.
+        // Isso diz ao inventário: "Adicione isso, mas fique quieto!"
+        diabrete.getInventario().adicionar(new Item("Mana Potion", "Recupera MP", "mana", 1), true);
+
+        // Opcional: Adicionar Poção de Cura ao Diabrete também (para o jogador saquear)
+        diabrete.getInventario().adicionar(new Item("Poção de Cura", "Cura 30 HP", "cura", 1), true);
+ 
         batalhar(diabrete); 
         
         if (jogador.estaVivo()) {
             System.out.println("\nNo baú que o Diabrete protegia, você encontra um Amuleto!");
-            jogador.getInventario().adicionar(new Item("Amuleto Sagrado", "Item de missão", "quest", 1));
+            jogador.getInventario().adicionar(new Item("Amuleto Sagrado", "Aumenta DEF (3 rodadas)", "buff_def", 1), false);
             esperarEnter();
         }
     }
@@ -133,34 +135,68 @@ public class Jogo {
         limparTela();
         System.out.println("=== CENA 3: O ALTAR PROFANO ===");
         System.out.println("Você chega ao coração da cripta.");
-        System.out.println("Um demônio maior, um Malikis, está abrindo um portal!");
-        System.out.println("CHEFE: 'Você chegou tarde, mortal!'");
+        System.out.println("Você sente uma energia estranha... O local parece um ponto de convergência.");
         
-        Inimigo chefe = new Inimigo("Malikis, o Devastador", 120, 12, 10, 2);
+        // --- SAVE POINT (CHECKPOINT) ---
+        System.out.println(" > JOGO SALVO: Um checkpoint foi criado antes da batalha final.");
+        Personagem saveState = clonarPersonagem(jogador); // Cria o backup
         
-        // Inicia a batalha
-        batalhar(chefe);
-        
-        // --- LÓGICA DE FINALIZAÇÃO CORRIGIDA ---
-        
-        if (jogador.estaVivo() && !chefe.estaVivo()) {
-            // CASO 1: VITÓRIA (Jogador vivo, Chefe morto)
-            System.out.println("\n*** VITÓRIA! ***");
-            System.out.println("Com a morte do demônio, o portal se fecha.");
-            System.out.println("O vilarejo está salvo graças a você, " + jogador.getNome() + ".");
-            System.out.println("FIM DE JOGO.");
+        boolean loopBatalha = true;
+
+        while (loopBatalha) {
+            System.out.println("\nUm demônio maior, um Malignus, está abrindo um portal!");
+            System.out.println("CHEFE: 'Você chegou tarde, mortal!'");
             
-        } else if (jogador.estaVivo() && chefe.estaVivo()) {
-            // CASO 2: FUGA (Jogador vivo, Chefe vivo)
-            System.out.println("\n*** FUGA! ***");
-            System.out.println("Você corre para fora da cripta, salvando sua própria pele.");
-            System.out.println("Mas, atrás de você, o portal se abre completamente.");
-            System.out.println("O Vilarejo Crepúsculo foi consumido pelas trevas.");
-            System.out.println("FIM DE JOGO (Final Ruim).");
+            // Recriamos o chefe a cada tentativa para ele voltar com HP cheio
+            Inimigo chefe = new Inimigo("Malikis, o Devastador", 120, 12, 10, 2);
+            // Loot do chefe (Silencioso)
+            chefe.getInventario().adicionar(new Item("Chifre de Malikis", "Troféu", "trofeu", 1), true);
             
-        } else {
-            // CASO 3: DERROTA (Jogador morto)
-            gameOver();
+            // Inicia o combate
+            batalhar(chefe);
+            
+            // --- VERIFICAÇÃO PÓS-BATALHA ---
+            
+            if (jogador.estaVivo() && !chefe.estaVivo()) {
+                // VITÓRIA
+                System.out.println("\n*** VITÓRIA! ***");
+                System.out.println("Com a morte do demônio, o portal se fecha.");
+                System.out.println("O vilarejo está salvo graças a você, " + jogador.getNome() + ".");
+                System.out.println("FIM DE JOGO.");
+                loopBatalha = false; // Sai do loop e encerra o jogo
+                
+            } else if (jogador.estaVivo() && chefe.estaVivo()) {
+                // FUGIU
+                System.out.println("\n*** FUGA! ***");
+                System.out.println("Você corre para fora da cripta, salvando sua própria pele.");
+                System.out.println("O Vilarejo Crepúsculo foi consumido pelas trevas.");
+                System.out.println("FIM DE JOGO (Final Ruim).");
+                loopBatalha = false;
+                
+            } else {
+                // DERROTA (JOGADOR MORREU)
+                System.out.println("\n--- VOCÊ CAIU EM COMBATE ---");
+                System.out.println("A escuridão começa a tomar conta de sua visão...");
+                System.out.println("Deseja usar o Save Point e tentar novamente?");
+                System.out.println("[1] Sim, eu não vou desistir!");
+                System.out.println("[2] Não, aceito meu destino.");
+                System.out.print(">> ");
+                
+                String opcao = scanner.nextLine();
+                
+                if (opcao.equals("1")) {
+                    System.out.println("\n... Uma luz brilha e o tempo parece voltar ...");
+                    // RESTAURA O SAVE
+                    // Importante: Clonamos o saveState de novo, para ter tentativas infinitas
+                    jogador = clonarPersonagem(saveState); 
+                    System.out.println("Você está de volta à entrada do Altar, com seus itens e vida restaurados!");
+                    esperarEnter();
+                    // O loop continua e a batalha reinicia
+                } else {
+                    gameOver();
+                    loopBatalha = false;
+                }
+            }
         }
     }
 
@@ -176,15 +212,20 @@ public class Jogo {
      */
     private static void batalhar(Inimigo inimigo) {
         // Chama o combate real nas classes (Guerreiro/Mago/Arqueiro)
-        jogador.batalhar(inimigo); 
+        jogador.batalhar(inimigo, scanner); 
         
         // CORREÇÃO: Só faz o saque se o jogador estiver vivo E o inimigo estiver morto
         if (jogador.estaVivo() && !inimigo.estaVivo()) {
             System.out.println("\nVocê vasculha os restos de " + inimigo.getNome() + "...");
             System.out.println("Você encontrou itens úteis!"); 
-            // Aqui transferimos o loot real
+            
+            // Pega o Loot
             jogador.getInventario().adicionarItensDoInimigo(inimigo.getInventario().clone());
-        } 
+            
+            // --- NOVO: LEVEL UP ---
+            System.out.println("A experiência de combate te fortalece...");
+            jogador.subirNivel(); // Chama o método que criamos!
+        }
         // Se o jogador fugiu (ambos vivos), não acontece nada aqui.
     }
     // --- 4. MÉTODOS AUXILIARES (TELA E INPUT) ---
@@ -222,12 +263,27 @@ public class Jogo {
         System.out.println("#      A MANCHA DE HALED       #");
         System.out.println("#      RPG de Texto em Java    #");
         System.out.println("################################");
-        System.out.println("Criado por: [Seu Nome]");
+        System.out.println("Criado por: Lucas Berti");
         esperarEnter();
     }
     
     private static void gameOver() {
         System.out.println("\n=== GAME OVER ===");
         System.out.println("Seu herói caiu em combate. O vilarejo foi consumido pelas trevas.");
+    }
+
+    /**
+     * Método auxiliar para criar uma cópia exata do personagem (Save Point).
+     * Verifica qual é a classe do herói e chama o construtor de cópia correspondente.
+     */
+    private static Personagem clonarPersonagem(Personagem original) {
+        if (original instanceof Guerreiro) {
+            return new Guerreiro((Guerreiro) original);
+        } else if (original instanceof Mago) {
+            return new Mago((Mago) original);
+        } else if (original instanceof Arqueiro) {
+            return new Arqueiro((Arqueiro) original);
+        }
+        return null; // Não deve acontecer
     }
 }

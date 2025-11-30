@@ -16,8 +16,8 @@ public class Guerreiro extends Personagem {
         );
         
         //adicionando itens iniciais especificos do guerreiro
-        Item espada = new Item("Espada Longa", "Uma espada básica de ferro", "ataque", 1);
-        this.inventario.adicionar(espada);
+        //Item espada = new Item("Espada Longa", "Uma espada básica de ferro", "ataque", 1);
+        //this.inventario.adicionar(espada);
     }
 
      //CONSTRUTOR DE COPIA
@@ -37,100 +37,165 @@ public class Guerreiro extends Personagem {
     }
 
     //METODO DE COMBATE
-    // Importante: Verifique se importou Scanner e Random no topo do arquivo
-    // import java.util.Scanner;
-    // import java.util.Random;
+    @Override
+    public boolean usarHabilidadeEspecial(Inimigo inimigo) {
+        int custo = 60;
+        if (this.mp >= custo) {
+            this.gastarMana(custo);
+            this.turnosSkillGuerreiro = 2; // Dura 2 turnos
+            System.out.println("\n> SKILL: ÉGIDE OFENSIVA!");
+            System.out.println("Você canaliza sua fé na armadura. Sua DEFESA é somada ao seu ATAQUE!");
+            return true;
+        } else {
+            System.out.println("> Mana insuficiente! (Precisa de " + custo + ")");
+            return false;
+        }
+    }
 
     @Override
-    public void batalhar(Inimigo inimigo) {
-        Scanner scanner = new Scanner(System.in);
+    public String getDescricaoHabilidade() {
+        return "Égide Ofensiva (60 MP)";
+    }
+
+    @Override
+    public void batalhar(Inimigo inimigo, Scanner scanner) {
         Random dado = new Random();
 
         System.out.println("========================================");
         System.out.println("   COMBATE INICIADO: " + this.getNome() + " vs " + inimigo.getNome());
         System.out.println("========================================");
 
-        // Loop do combate
         while (this.estaVivo() && inimigo.estaVivo()) {
             
-            // --- MOSTRAR STATUS ---
+            // --- MOSTRAR STATUS (ATUALIZADO) ---
             System.out.println("\n----------------------------------------");
-            System.out.println(this.getNome() + " HP: " + this.getPontosVida());
-            System.out.println(inimigo.getNome() + " HP: " + inimigo.getPontosVida());
+            
+            // Lógica para montar a string de status do Jogador
+            String statusBuffs = "";
+            if (this.turnosBuffAtaque > 0) statusBuffs += " [ATK UP: " + this.turnosBuffAtaque + "t]";
+            if (this.turnosBuffDefesa > 0) statusBuffs += " [DEF UP: " + this.turnosBuffDefesa + "t]";
+            
+            System.out.println(this.getNome().toUpperCase() + statusBuffs);
+            System.out.println("HP: " + this.getPontosVida() + " | MP: " + this.getMp()); 
+            // Aqui mostramos o Ataque/Defesa atuais (já calculados com o buff)
+            System.out.println("ATK: " + this.getAtaque() + " | DEF: " + this.getDefesa());
+            
+            System.out.println("\nVS");
+            
+            System.out.println("\n" + inimigo.getNome().toUpperCase());
+            System.out.println("HP: " + inimigo.getPontosVida() + " | ATK: " + inimigo.getAtaque() + " | DEF: " + inimigo.getDefesa());
             System.out.println("----------------------------------------");
+            
             System.out.println("Sua vez! Escolha uma ação:");
             System.out.println("[1] Atacar");
-            System.out.println("[2] Usar Poção de Cura");
-            System.out.println("[3] Tentar Fugir");
+            System.out.println("[2] " + this.getDescricaoHabilidade());
+            System.out.println("[3] Usar Poção de Cura (Atalho)");
+            System.out.println("[4] Usar Item do Inventário"); // NOVA OPÇÃO
+            System.out.println("[5] Tentar Fugir");
             System.out.print(">> ");
 
             String escolha = scanner.nextLine();
-
-            // --- TURNO DO JOGADOR ---
-            boolean turnoPassou = true; // Controla se o inimigo ataca depois
+            boolean turnoPassou = false; // Começa falso, só vira true se fizer uma ação válida
 
             if (escolha.equals("1")) {
-                // OPÇÃO 1: ATACAR (Regra: d20 + Ataque vs Defesa)
-                System.out.println("\n> Você ataca com sua arma!");
+                // ATACAR
+                System.out.println("\n> Você empunha sua Espada Longa e desfere um golpe pesado!");                
                 this.atacar(inimigo);
+                turnoPassou = true;
 
             } else if (escolha.equals("2")) {
-                // OPÇÃO 2: USAR ITEM
-                if (this.getInventario().temItem("Poção de Cura")) {
-                    this.getInventario().remover("Poção de Cura");
-                    this.curar(30); // Valor fixo de cura para simplificar
-                    System.out.println("> Você bebeu uma Poção de Cura.");
-                } else {
-                    System.out.println("\n> Você revira a bolsa, mas não tem Poções!");
-                    // Não perde o turno se errar o item
-                    turnoPassou = false; 
-                }
+            // HABILIDADE ESPECIAL
+            // Chama o método abstrato que implementamos em cada classe
+            boolean usou = this.usarHabilidadeEspecial(inimigo);
+            if (usou) {
+                turnoPassou = true;
+            } else {
+                turnoPassou = false; // Se não tinha mana, não perde a vez
+            }
 
             } else if (escolha.equals("3")) {
-                // OPÇÃO 3: FUGIR (Regra: d6. 1-2 falha, 3-6 sucesso)
+                // ATALHO POÇÃO
+                if (this.getInventario().temItem("Poção de Cura")) {
+                    this.getInventario().remover("Poção de Cura");
+                    this.curar(30);
+                    System.out.println("> Você bebeu uma Poção de Cura.");
+                    turnoPassou = true;
+                } else {
+                    System.out.println("\n> Sem poções no atalho!");
+                }
+
+            } else if (escolha.equals("4")) {
+                // --- NOVA LÓGICA: LISTAR INVENTÁRIO ---
+                System.out.println("\n--- SEU INVENTÁRIO ---");
+                // Pega a lista numerada
+                java.util.ArrayList<Item> lista = this.getInventario().getListaItens();
+                
+                if (lista.isEmpty()) {
+                    System.out.println("(Vazio)");
+                } else {
+                    // Loop para mostrar: 1. Nome (Qtd) - Descrição
+                    for (int i = 0; i < lista.size(); i++) {
+                        Item item = lista.get(i);
+                        System.out.println("[" + (i + 1) + "] " + item.getNome() + " (" + item.getQuantidade() + "x) - " + item.getDescricao());
+                    }
+                    System.out.println("[0] Cancelar");
+                    System.out.print("Escolha o item: ");
+                    
+                    try {
+                        int index = Integer.parseInt(scanner.nextLine()) - 1;
+                        if (index >= 0 && index < lista.size()) {
+                            Item itemEscolhido = lista.get(index);
+                            // Chama o método que criamos no Passo 2
+                            // Se o método retornar true, o turno passa. Se false (item inútil), não passa.
+                            turnoPassou = this.usarItemDoInventario(itemEscolhido, inimigo);
+                        } else {
+                            System.out.println("> Cancelado.");
+                        }
+                    } catch (Exception e) {
+                        System.out.println("> Opção inválida.");
+                    }
+                }
+
+            } else if (escolha.equals("5")) {
+                // FUGIR
                 System.out.println("\n> Você tenta correr...");
                 int rolagemFuga = dado.nextInt(6) + 1;
-                
                 if (rolagemFuga >= 3) {
-                    System.out.println("> SUCESSO! (Dado: " + rolagemFuga + ") Você escapou da batalha.");
-                    return; // Encerra o método batalhar imediatamente
+                    System.out.println("> SUCESSO! Você escapou.");
+                    return; 
                 } else {
-                    System.out.println("> FALHA! (Dado: " + rolagemFuga + ") O inimigo bloqueou sua passagem!");
-                    // Turno passa e o jogador apanha
+                    System.out.println("> FALHA! O inimigo bloqueou você!");
+                    turnoPassou = true;
                 }
 
             } else {
                 System.out.println("Opção inválida.");
-                turnoPassou = false;
             }
 
-            // Verifica se inimigo morreu antes de ele atacar
+            // CHECAGEM DE VITÓRIA
             if (!inimigo.estaVivo()) {
                 System.out.println("\n****************************************");
                 System.out.println("   VITÓRIA! O inimigo foi derrotado!");
                 System.out.println("****************************************");
-                
-                // Lógica de Loot (Saque)
                 System.out.println("Você saqueia o corpo do inimigo...");
-                // Clona o inventário do inimigo para evitar bugs de referência
                 this.getInventario().adicionarItensDoInimigo(inimigo.getInventario().clone());
                 break;
             }
 
-            // --- TURNO DO INIMIGO ---
-            if (turnoPassou) {
+            // TURNO DO INIMIGO
+            if (turnoPassou && inimigo.estaVivo()) {
                 System.out.println("\n> Vez do " + inimigo.getNome() + "...");
-                // Pausa dramática pequena (opcional, pode remover se der erro)
                 try { Thread.sleep(1000); } catch (Exception e) {} 
-                
                 inimigo.atacar(this);
             }
             
-            // Verifica se jogador morreu
+            // CHECAGEM DE DERROTA
             if (!this.estaVivo()) {
                 System.out.println("\nVOCÊ MORREU! O destino de Haled está selado...");
                 break;
             }
+            
+            this.atualizarBuffs();
         }
     }
 }
