@@ -1,3 +1,6 @@
+import java.util.Random;
+import java.util.Scanner;
+
 public class Arqueiro extends Personagem {
 
     //CONSTRUTOR PRINCIPAL
@@ -32,45 +35,100 @@ public class Arqueiro extends Personagem {
     }
 
     //METODO DE COMBATE
+    // Importante: Verifique se importou Scanner e Random no topo do arquivo
+    // import java.util.Scanner;
+    // import java.util.Random;
+
+    @Override
     public void batalhar(Inimigo inimigo) {
-        System.out.println("--- BATALHA INICIADA ---");
-        System.out.println(this.nome + " (HP: " + this.pontosVida + ") vs. " + inimigo.getNome() + " (HP: " + inimigo.getPontosVida() + ")");
-        System.out.println("------------------------");
+        Scanner scanner = new Scanner(System.in);
+        Random dado = new Random();
 
-        //loop de combate continua enquanto ambos estiverem vivos
+        System.out.println("========================================");
+        System.out.println("   COMBATE INICIADO: " + this.getNome() + " vs " + inimigo.getNome());
+        System.out.println("========================================");
+
+        // Loop do combate
         while (this.estaVivo() && inimigo.estaVivo()) {
+            
+            // --- MOSTRAR STATUS ---
+            System.out.println("\n----------------------------------------");
+            System.out.println(this.getNome() + " HP: " + this.getPontosVida());
+            System.out.println(inimigo.getNome() + " HP: " + inimigo.getPontosVida());
+            System.out.println("----------------------------------------");
+            System.out.println("Sua vez! Escolha uma ação:");
+            System.out.println("[1] Atacar");
+            System.out.println("[2] Usar Poção de Cura");
+            System.out.println("[3] Tentar Fugir");
+            System.out.print(">> ");
 
-            //TURNO DO JOGADOR
-            //vou adicionar o menu para escolher entre atacar item e fugir
-            
-            //por enquanto apenas atacar
-            System.out.println("\n--- Turno do Jogador ---");
-            this.atacar(inimigo);
-            
-            //verificando se o inimigo morreu depois do ataque
+            String escolha = scanner.nextLine();
+
+            // --- TURNO DO JOGADOR ---
+            boolean turnoPassou = true; // Controla se o inimigo ataca depois
+
+            if (escolha.equals("1")) {
+                // OPÇÃO 1: ATACAR (Regra: d20 + Ataque vs Defesa)
+                System.out.println("\n> Você ataca com sua arma!");
+                this.atacar(inimigo);
+
+            } else if (escolha.equals("2")) {
+                // OPÇÃO 2: USAR ITEM
+                if (this.getInventario().temItem("Poção de Cura")) {
+                    this.getInventario().remover("Poção de Cura");
+                    this.curar(30); // Valor fixo de cura para simplificar
+                    System.out.println("> Você bebeu uma Poção de Cura.");
+                } else {
+                    System.out.println("\n> Você revira a bolsa, mas não tem Poções!");
+                    // Não perde o turno se errar o item
+                    turnoPassou = false; 
+                }
+
+            } else if (escolha.equals("3")) {
+                // OPÇÃO 3: FUGIR (Regra: d6. 1-2 falha, 3-6 sucesso)
+                System.out.println("\n> Você tenta correr...");
+                int rolagemFuga = dado.nextInt(6) + 1;
+                
+                if (rolagemFuga >= 3) {
+                    System.out.println("> SUCESSO! (Dado: " + rolagemFuga + ") Você escapou da batalha.");
+                    return; // Encerra o método batalhar imediatamente
+                } else {
+                    System.out.println("> FALHA! (Dado: " + rolagemFuga + ") O inimigo bloqueou sua passagem!");
+                    // Turno passa e o jogador apanha
+                }
+
+            } else {
+                System.out.println("Opção inválida.");
+                turnoPassou = false;
+            }
+
+            // Verifica se inimigo morreu antes de ele atacar
             if (!inimigo.estaVivo()) {
-                System.out.println(inimigo.getNome() + " foi derrotado!");
-                break; // Sai do loop
+                System.out.println("\n****************************************");
+                System.out.println("   VITÓRIA! O inimigo foi derrotado!");
+                System.out.println("****************************************");
+                
+                // Lógica de Loot (Saque)
+                System.out.println("Você saqueia o corpo do inimigo...");
+                // Clona o inventário do inimigo para evitar bugs de referência
+                this.getInventario().adicionarItensDoInimigo(inimigo.getInventario().clone());
+                break;
             }
 
-            //TURNO DO INIMIGO
-            System.out.println("\n--- Turno do Inimigo ---");
-            inimigo.atacar(this); 
-
-            //verificando se o jogador morreu depois do ataque
+            // --- TURNO DO INIMIGO ---
+            if (turnoPassou) {
+                System.out.println("\n> Vez do " + inimigo.getNome() + "...");
+                // Pausa dramática pequena (opcional, pode remover se der erro)
+                try { Thread.sleep(1000); } catch (Exception e) {} 
+                
+                inimigo.atacar(this);
+            }
+            
+            // Verifica se jogador morreu
             if (!this.estaVivo()) {
-                System.out.println(this.nome + " foi derrotado! FIM DE JOGO.");
-                break; //sai do loop
+                System.out.println("\nVOCÊ MORREU! O destino de Haled está selado...");
+                break;
             }
-            
-            //mostra a vida no final da rodada
-            System.out.println("\n--- Fim da Rodada ---");
-            System.out.println("HP de " + this.nome + ": " + this.pontosVida);
-            System.out.println("HP de " + inimigo.getNome() + ": " + inimigo.getPontosVida());
-            System.out.println("---------------------");
-            
         }
-
-        System.out.println("--- BATALHA ENCERRADA ---");
     }
 }

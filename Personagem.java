@@ -47,6 +47,14 @@ public abstract class Personagem {
         }
     }
 
+    public void curar(int quantidadeCura) {
+        this.pontosVida += quantidadeCura;
+        System.out.println(" > " + this.nome + " recuperou " + quantidadeCura + " HP! (Vida atual: " + this.pontosVida + ")");
+    }
+
+    //metodo abstrato
+    public abstract void batalhar(Inimigo inimigo);
+
     //metodo para subtrair da vida de um personagem quando ele recebe dano
     public void receberDano(int dano) {
         this.pontosVida -= dano;

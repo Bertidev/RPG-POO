@@ -82,6 +82,20 @@ public class Inventario implements Cloneable {
         return inventarioCopiado;
     }
 
+    public void adicionarItensDoInimigo(Inventario inventarioInimigo) {
+        // Itera sobre os itens do inimigo (usando values() do TreeMap)
+        for (Item itemDoInimigo : inventarioInimigo.itens.values()) {
+            // Usa o método adicionar() que já criamos, pois ele
+            // já sabe lidar com quantidades somadas!
+            this.adicionar(itemDoInimigo);
+        }
+    }
+    
+    // Precisamos também de um método para verificar se tem poção
+    public boolean temItem(String nome) {
+        return this.itens.containsKey(nome);
+    }
+
     //GETTERS
     //getter para jogo poder ver as informacoes do item
     public Item getItem(String nomeDoItem) {

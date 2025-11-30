@@ -20,4 +20,11 @@ public class Inimigo extends Personagem {
         Item lootObrigatorio = new Item("Essência Demoníaca", "Um item para missões", "missao", 1);
         this.inventario.adicionar(lootObrigatorio);
     }
+
+    @Override
+    public void batalhar(Inimigo inimigo) {
+        // Em teoria, inimigos não lutam contra inimigos neste jogo.
+        // Deixamos apenas uma mensagem ou vazio para cumprir o contrato do Java.
+        System.out.println("O inimigo ruge furiosamente, mas não sabe iniciar batalhas!");
+    }
 }
