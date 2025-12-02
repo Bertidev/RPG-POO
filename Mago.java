@@ -1,27 +1,29 @@
 import java.util.Random;
 import java.util.Scanner;
 
+// classe concreta que representa o personagem mago do jogador
 public class Mago extends Personagem {
 
-    //CONSTRUTOR PRINCIPAL
+    // construtor principal
+    // cria um mago padrao com atributos especificos
     public Mago(String nome) {
         super(
             nome,   
-            80,     //baixo
-            18,     //alto
-            8,      //baixo
-            1      
+            80,     // vida baixa
+            18,     // ataque magico alto
+            8,      // defesa baixa
+            1       // nivel inicial
         );
         
-        //adiciona itens iniciais especificos do mago
-        //Item grimorio = new Item("Grimório Simples", "Contém encantamentos básicos", "magia", 1);
-        //this.inventario.adicionar(grimorio);
+        // adiciona itens iniciais especificos do mago (removido por enquanto)
+        // Item grimorio = new Item("Grimório Simples", "Contém encantamentos básicos", "magia", 1);
+        // this.inventario.adicionar(grimorio);
     }
 
-    //CONSTRUTOR DE COPIA
-    //cria uma copia exata de outro mago, requisito para save point
+    // construtor de copia
+    // cria uma copia do mago original -- usado para mecanica de save point
     public Mago(Mago outroMago) {
-        //copia os atributos base chamando o construtor super
+        // copia atributos chamando o construtor da classe mae
         super(
             outroMago.nome,
             outroMago.pontosVida,
@@ -30,33 +32,40 @@ public class Mago extends Personagem {
             outroMago.nivel
         );
         
-        //clona o inventario
+        // clona o inventario inteiro do outro mago
         this.inventario = outroMago.inventario.clone();
     }
 
-    //METODO DE COMBATE
+    // metodo de combate -- habilidade especial do mago
     @Override
     public boolean usarHabilidadeEspecial(Inimigo inimigo) {
-        int custo = 45;
+        int custo = 45;   // mp necessario para usar a habilidade
+
+        // verifica se o jogador tem mana suficiente
         if (this.mp >= custo) {
-            this.gastarMana(custo);
+            this.gastarMana(custo); // desconta mp
             System.out.println("\n> SKILL: EXORCISMO SUPREMO!");
-            // Dano = Ataque Mágico * 1.5 + d20
+
+            // calculo de dano: ataque * 1.5 + rolagem de d20
             int danoSkill = (int)(this.getAtaque() * 1.5) + new java.util.Random().nextInt(20);
+            
             System.out.println("Um raio de luz pura atinge o inimigo causando " + danoSkill + " de dano!");
+
             inimigo.receberDano(danoSkill);
-            return true;
+            return true; // turno foi gasto com sucesso
         } else {
             System.out.println("> Mana insuficiente! (Precisa de " + custo + ")");
-            return false;
+            return false; // sem mana -> nao perde o turno
         }
     }
 
+    // retorna o nome da habilidade para exibicao no menu de combate
     @Override
     public String getDescricaoHabilidade() {
-        return "Égide Ofensiva (60 MP)";
+        return "Exorcismo Supremo (45 MP)";
     }
 
+    // loop de combate do mago contra um inimigo
     @Override
     public void batalhar(Inimigo inimigo, Scanner scanner) {
         Random dado = new Random();
@@ -65,19 +74,21 @@ public class Mago extends Personagem {
         System.out.println("   COMBATE INICIADO: " + this.getNome() + " vs " + inimigo.getNome());
         System.out.println("========================================");
 
+        // loop roda enquanto ambos estiverem vivos
         while (this.estaVivo() && inimigo.estaVivo()) {
             
-            // --- MOSTRAR STATUS (ATUALIZADO) ---
+            // mostrar status atualizado do combate
             System.out.println("\n----------------------------------------");
-            
-            // Lógica para montar a string de status do Jogador
+
+            // monta string com buffs ativos (ataque/defesa)
             String statusBuffs = "";
             if (this.turnosBuffAtaque > 0) statusBuffs += " [ATK UP: " + this.turnosBuffAtaque + "t]";
             if (this.turnosBuffDefesa > 0) statusBuffs += " [DEF UP: " + this.turnosBuffDefesa + "t]";
             
             System.out.println(this.getNome().toUpperCase() + statusBuffs);
             System.out.println("HP: " + this.getPontosVida() + " | MP: " + this.getMp()); 
-            // Aqui mostramos o Ataque/Defesa atuais (já calculados com o buff)
+            
+            // exibe valores ja modificados pelos buffs temporarios
             System.out.println("ATK: " + this.getAtaque() + " | DEF: " + this.getDefesa());
             
             System.out.println("\nVS");
@@ -86,35 +97,35 @@ public class Mago extends Personagem {
             System.out.println("HP: " + inimigo.getPontosVida() + " | ATK: " + inimigo.getAtaque() + " | DEF: " + inimigo.getDefesa());
             System.out.println("----------------------------------------");
             
+            // menu de acoes do jogador
             System.out.println("Sua vez! Escolha uma ação:");
             System.out.println("[1] Atacar");
             System.out.println("[2] " + this.getDescricaoHabilidade());
             System.out.println("[3] Usar Poção de Cura (Atalho)");
-            System.out.println("[4] Usar Item do Inventário"); // NOVA OPÇÃO
+            System.out.println("[4] Usar Item do Inventário"); // acesso ao inventario completo
             System.out.println("[5] Tentar Fugir");
             System.out.print(">> ");
 
             String escolha = scanner.nextLine();
-            boolean turnoPassou = false; // Começa falso, só vira true se fizer uma ação válida
+            boolean turnoPassou = false; // indica se o jogador gastou o turno
 
+            // opcao 1: ataque normal
             if (escolha.equals("1")) {
-                // ATACAR
                 System.out.println("\n> Você ergue seu Grimório e dispara um raio de energia!");               
                 this.atacar(inimigo);
                 turnoPassou = true;
 
+            // opcao 2: habilidade especial
             } else if (escolha.equals("2")) {
-            // HABILIDADE ESPECIAL
-            // Chama o método abstrato que implementamos em cada classe
-            boolean usou = this.usarHabilidadeEspecial(inimigo);
-            if (usou) {
-                turnoPassou = true;
-            } else {
-                turnoPassou = false; // Se não tinha mana, não perde a vez
-            }
 
+                boolean usou = this.usarHabilidadeEspecial(inimigo);
+
+                // so perde o turno se a skill foi executada
+                if (usou) turnoPassou = true;
+
+            // opcao 3: atalho de pocao de cura
             } else if (escolha.equals("3")) {
-                // ATALHO POÇÃO
+
                 if (this.getInventario().temItem("Poção de Cura")) {
                     this.getInventario().remover("Poção de Cura");
                     this.curar(30);
@@ -124,77 +135,90 @@ public class Mago extends Personagem {
                     System.out.println("\n> Sem poções no atalho!");
                 }
 
+            // opcao 4: abrir inventario
             } else if (escolha.equals("4")) {
-                // --- NOVA LÓGICA: LISTAR INVENTÁRIO ---
+
                 System.out.println("\n--- SEU INVENTÁRIO ---");
-                // Pega a lista numerada
+
+                // pega lista de itens numerada
                 java.util.ArrayList<Item> lista = this.getInventario().getListaItens();
                 
                 if (lista.isEmpty()) {
                     System.out.println("(Vazio)");
                 } else {
-                    // Loop para mostrar: 1. Nome (Qtd) - Descrição
+
+                    // exibe cada item + quantidade + descricao
                     for (int i = 0; i < lista.size(); i++) {
                         Item item = lista.get(i);
                         System.out.println("[" + (i + 1) + "] " + item.getNome() + " (" + item.getQuantidade() + "x) - " + item.getDescricao());
                     }
+
                     System.out.println("[0] Cancelar");
                     System.out.print("Escolha o item: ");
                     
                     try {
                         int index = Integer.parseInt(scanner.nextLine()) - 1;
+
+                        // se index valido -> usar item
                         if (index >= 0 && index < lista.size()) {
                             Item itemEscolhido = lista.get(index);
-                            // Chama o método que criamos no Passo 2
-                            // Se o método retornar true, o turno passa. Se false (item inútil), não passa.
+
+                            // retorna true se o item foi usado com sucesso
                             turnoPassou = this.usarItemDoInventario(itemEscolhido, inimigo);
+
                         } else {
                             System.out.println("> Cancelado.");
                         }
+
                     } catch (Exception e) {
                         System.out.println("> Opção inválida.");
                     }
                 }
 
+            // opcao 5: tentar fugir
             } else if (escolha.equals("5")) {
-                // FUGIR
+
                 System.out.println("\n> Você tenta correr...");
                 int rolagemFuga = dado.nextInt(6) + 1;
+
                 if (rolagemFuga >= 3) {
                     System.out.println("> SUCESSO! Você escapou.");
-                    return; 
+                    return; // fuga encerrada
                 } else {
                     System.out.println("> FALHA! O inimigo bloqueou você!");
-                    turnoPassou = true;
+                    turnoPassou = true; // falha ainda gasta turno
                 }
 
             } else {
                 System.out.println("Opção inválida.");
             }
 
-            // CHECAGEM DE VITÓRIA
+            // checa se o inimigo foi derrotado
             if (!inimigo.estaVivo()) {
                 System.out.println("\n****************************************");
                 System.out.println("   VITÓRIA! O inimigo foi derrotado!");
                 System.out.println("****************************************");
                 System.out.println("Você saqueia o corpo do inimigo...");
+
+                // copia loot do inventario do inimigo
                 this.getInventario().adicionarItensDoInimigo(inimigo.getInventario().clone());
                 break;
             }
 
-            // TURNO DO INIMIGO
+            // turno do inimigo
             if (turnoPassou && inimigo.estaVivo()) {
                 System.out.println("\n> Vez do " + inimigo.getNome() + "...");
                 try { Thread.sleep(1000); } catch (Exception e) {} 
                 inimigo.atacar(this);
             }
             
-            // CHECAGEM DE DERROTA
+            // checa se o jogador morreu
             if (!this.estaVivo()) {
                 System.out.println("\nVOCÊ MORREU! O destino de Haled está selado...");
                 break;
             }
 
+            // atualiza decremento dos buffs temporarios
             this.atualizarBuffs();
         }
     }
